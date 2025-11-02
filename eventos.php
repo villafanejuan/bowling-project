@@ -1,39 +1,61 @@
 <?php
+// 1. Manejo de Rutas y Conexión Modularizada
+// Define la constante ROOT_PATH para usar rutas relativas basadas en la ubicación de este archivo.
+define('ROOT_PATH', __DIR__ . '/'); 
+
 session_start();
-require_once 'D:/Archivos de programas/XAMPPg/htdocs/Proyect-Boliche/includes/FileHelper.php';
 
-// Conexión a la base de datos
-$conn = new mysqli('localhost', 'root', '', 'boliche_db');
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-$conn->set_charset("utf8mb4");
+// Incluye la conexión a la DB ($conn) desde tu archivo de configuración
+require_once ROOT_PATH . 'config/bd.php';
+// Incluye otras utilidades. ¡Adiós a la ruta absoluta!
+require_once ROOT_PATH . 'includes/FileHelper.php';
 
-// Obtener el evento
-if (!isset($_GET['id'])) {
+// Se eliminó la conexión a la base de datos redundante.
+
+// Función para limpiar recursos y redirigir
+function clean_up_and_redirect($conn, $stmt = null) {
+    if ($stmt && is_a($stmt, 'mysqli_stmt')) {
+        $stmt->close();
+    }
+    $conn->close();
     header('Location: index.php');
     exit;
 }
 
+// 2. Validación y Obtención del Evento ID
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    header('Location: index.php');
+    exit;
+}
+$evento_id = (int)$_GET['id']; // Se castea a entero para mayor seguridad
+
+// 3. Consulta Principal del Evento (usando consulta preparada)
 $stmt = $conn->prepare("SELECT e.*, 
-                              COALESCE(e.imagen_portada,
-                                      (SELECT f.ruta FROM fotos f WHERE f.evento_id = e.id LIMIT 1)
-                              ) as imagen_portada
-                              FROM eventos e 
-                              WHERE e.id = ?");
-$stmt->bind_param("i", $_GET['id']);
-$stmt->execute();
-$evento = $stmt->get_result()->fetch_assoc();
+                                  COALESCE(e.imagen_portada,
+                                          (SELECT f.ruta FROM fotos f WHERE f.evento_id = e.id LIMIT 1)
+                                  ) as imagen_portada
+                                  FROM eventos e 
+                                  WHERE e.id = ?");
+
+if (!$stmt->bind_param("i", $evento_id) || !$stmt->execute()) {
+    clean_up_and_redirect($conn, $stmt);
+}
+
+$result = $stmt->get_result();
+$evento = $result->fetch_assoc();
+$stmt->close(); // Cierre explícito del primer statement
 
 if (!$evento) {
-    header('Location: index.php');
-    exit;
+    clean_up_and_redirect($conn);
 }
 
-// Obtener las fotos del evento
+// 4. Obtener las Fotos del Evento (usando consulta preparada)
 $stmt = $conn->prepare("SELECT * FROM fotos WHERE evento_id = ? ORDER BY orden ASC, created_at DESC");
-$stmt->bind_param("i", $_GET['id']);
-$stmt->execute();
+
+if (!$stmt->bind_param("i", $evento_id) || !$stmt->execute()) {
+    clean_up_and_redirect($conn, $stmt);
+}
+
 $fotos = $stmt->get_result();
 
 $fecha = new DateTime($evento['fecha']);
@@ -53,7 +75,6 @@ $fecha = new DateTime($evento['fecha']);
     </style>
 </head>
 <body class="text-gray-900">
-    <!-- Header -->
     <header class="sticky top-0 z-50 backdrop-blur-md bg-white/95 border-b border-gray-200">
         <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
             <a href="index.php" class="font-bold text-lg text-gray-900">Boliche Nocturno</a>
@@ -66,7 +87,6 @@ $fecha = new DateTime($evento['fecha']);
         </div>
     </header>
 
-    <!-- Evento Info -->
     <div class="max-w-6xl mx-auto px-6 py-12">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="p-6">
@@ -81,23 +101,21 @@ $fecha = new DateTime($evento['fecha']);
             </div>
         </div>
 
-        <!-- Galería de Fotos -->
         <div class="mt-12">
             <h2 class="text-2xl font-bold mb-8">Galería de Fotos</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <?php while ($foto = $fotos->fetch_assoc()): ?>
                     <div class="overflow-hidden bg-white rounded-xl shadow hover:-translate-y-1 hover:shadow-lg transition">
-                        <img src="<?= $foto['ruta'] ?>" 
+                        <img src="<?= htmlspecialchars($foto['ruta']) ?>" 
                              alt="Foto del evento <?= htmlspecialchars($evento['titulo']) ?>" 
                              class="w-full h-64 object-cover cursor-pointer"
-                             onclick="openLightbox('<?= $foto['ruta'] ?>')" />
+                             onclick="openLightbox('<?= htmlspecialchars($foto['ruta']) ?>')" />
                     </div>
                 <?php endwhile; ?>
             </div>
         </div>
     </div>
 
-    <!-- Lightbox -->
     <div id="lightbox" class="fixed inset-0 bg-black/90 hidden z-50" onclick="closeLightbox()">
         <div class="absolute inset-0 flex items-center justify-center p-4">
             <img id="lightbox-img" src="" alt="" class="max-h-[90vh] max-w-[90vw] object-contain">
@@ -119,3 +137,8 @@ $fecha = new DateTime($evento['fecha']);
     </script>
 </body>
 </html>
+<?php 
+// 5. Cierre de Recursos
+$stmt->close(); // Cierre explícito del segundo statement (fotos)
+$conn->close(); // Cierre explícito de la conexión a la base de datos
+?>

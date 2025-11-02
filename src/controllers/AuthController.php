@@ -5,7 +5,7 @@ class AuthController {
     private $user;
     
     public function __construct($db) {
-        $this->user = new User($db);
+        $this->user = new Usuarios($db);
     }
     
     public function login($username, $password) {

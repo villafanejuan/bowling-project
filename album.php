@@ -1,29 +1,38 @@
 <?php
-require_once __DIR__ . '/config/config.php';
+// Asumo que 'config/config.php' realiza la conexión y define la variable $conn.
 
+// 1. Inclusión de Configuración
+// La ruta __DIR__ . '/config/config.php' ya es una excelente práctica para rutas relativas.
+require_once __DIR__ . '/config/bd.php';
+
+// Definir una variable de conexión si no está definida en config.php (asumiendo que sí lo está)
+// Si config.php incluye la conexión como $conn, no es necesario hacer nada más aquí.
+
+// 2. Validación de Entrada
+// Uso del operador de fusión de null (??) es una buena práctica moderna.
 $evento_id = $_GET['evento_id'] ?? null;
 
-if (!$evento_id) {
-    header('Location: index.php#galeria');
-    exit();
-}
 
-// Obtener información del evento
+$evento_id = (int)$evento_id; // Casteo a entero para seguridad
+
+// 3. Obtener información del evento
 $stmt = $conn->prepare("SELECT * FROM eventos WHERE id = ?");
-$stmt->bind_param("i", $evento_id);
-$stmt->execute();
-$evento = $stmt->get_result()->fetch_assoc();
 
-if (!$evento) {
-    header('Location: index.php#galeria');
-    exit();
+// 4. Obtener todas las fotos del evento
+$stmt = $conn->prepare("SELECT * FROM fotos WHERE evento_id = ? ORDER BY id DESC");
+if (!$stmt) {
+    error_log("Error de preparación de consulta (fotos): " . $conn->error);
+    clean_up_and_redirect($conn);
 }
 
-// Obtener todas las fotos del evento
-$stmt = $conn->prepare("SELECT * FROM fotos WHERE evento_id = ? ORDER BY id DESC");
-$stmt->bind_param("i", $evento_id);
-$stmt->execute();
+// Vinculación y Ejecución de Consulta 2
+if (!$stmt->bind_param("i", $evento_id) || !$stmt->execute()) {
+    error_log("Error de ejecución de consulta (fotos): " . $stmt->error);
+    clean_up_and_redirect($conn, $stmt);
+}
+
 $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+// El segundo statement se cerrará al final del script.
 ?>
 
 <!DOCTYPE html>
@@ -51,9 +60,12 @@ $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             backdrop-filter: blur(10px);
         }
 
+        /* Corrección de ruta en el CSS: Si 'uploads/ev/' es la ruta web, esto está bien. 
+           Si el archivo PHP es 'galeria-evento.php', la ruta del CSS es relativa al documento HTML.
+           Se debe asegurar que la ruta sea correcta. */
         .album-header {
             background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
-                        url('uploads/ev/<?= $evento['imagen'] ?? 'default.jpg' ?>') center/cover;
+                        url('uploads/ev/<?= htmlspecialchars($evento['imagen'] ?? 'default.jpg') ?>') center/cover;
             padding: 100px 0 50px;
             margin-bottom: 30px;
         }
@@ -118,7 +130,6 @@ $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="index.php">BOLICHE</a>
@@ -141,7 +152,6 @@ $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     </nav>
 
-    <!-- Album Header -->
     <header class="album-header">
         <div class="container">
             <a href="index.php#galeria" class="btn btn-back mb-4">
@@ -159,7 +169,6 @@ $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     </header>
 
-    <!-- Photo Grid -->
     <div class="container">
         <div class="photo-grid">
             <?php foreach ($fotos as $foto): ?>
@@ -168,7 +177,7 @@ $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                data-lightbox="album"
                data-title="<?= htmlspecialchars($foto['descripcion'] ?? '') ?>">
                 <img src="uploads/nuevo_evento/<?= htmlspecialchars($foto['ruta']) ?>" 
-                     alt="<?= htmlspecialchars($foto['descripcion'] ?? $evento['titulo']) ?>">
+                    alt="<?= htmlspecialchars($foto['descripcion'] ?? $evento['titulo']) ?>">
             </a>
             <?php endforeach; ?>
         </div>
@@ -185,3 +194,8 @@ $fotos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </script>
 </body>
 </html>
+<?php 
+// 5. Cierre de Recursos
+$stmt->close(); // Cierre explícito del segundo statement (fotos)
+$conn->close(); // Cierre explícito de la conexión a la base de datos
+?>

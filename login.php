@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/bd.php';
 
 // Si ya está logueado, redirigir al dashboard
 if (isset($_SESSION['user_id'])) {
