@@ -1,0 +1,187 @@
+/* Tipografías y reset ligero */
+:root{
+  --bg: #ffffff;
+  --muted: #6b7280;
+  --muted2: #bdc1c9;
+  --accent: #111827;
+  --gap: 18px;
+  --radius: 10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               Roboto, "Helvetica Neue", Arial;
+  background:var(--bg);
+  color:var(--accent);
+  background-color: var(--muted2);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.35;
+}
+
+/* ---------- TOPBAR / HERO ---------- */
+.topbar{
+  width:100%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.96));
+  border-bottom: 1px solid rgba(15,23,42,0.04);
+  position:sticky;
+  top:0;
+  z-index:50;
+  backdrop-filter: blur(6px);
+}
+.topbar-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  max-width:1200px;
+  margin:0 auto;
+  padding:14px 20px;
+}
+.logo{
+  font-weight:700;
+  text-decoration:none;
+  color:var(--accent);
+  font-size:18px;
+}
+.nav a{
+  margin-left:14px;
+  color:var(--muted);
+  text-decoration:none;
+  font-size:14px;
+}
+.hero-search{
+  max-width:1200px;
+  margin:18px auto;
+  padding: 0 20px 22px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  align-items:flex-start;
+}
+.hero-search h1{
+  margin:0;
+  font-size:28px;
+  font-weight:700;
+  color:var(--accent);
+}
+.search-form{
+  width:100%;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.search-form input[type="search"]{
+  flex:1;
+  padding:12px 14px;
+  border-radius:999px;
+  border:1px solid rgba(15,23,42,0.08);
+  font-size:15px;
+  outline:none;
+  box-shadow: none;
+}
+.search-form input[type="search"]::placeholder{
+  color:var(--muted);
+}
+.search-form button{
+  padding:10px 16px;
+  border-radius:999px;
+  border:none;
+  background: rgba(0,0,0,0.85);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* ---------- GRID MASONRY ---------- */
+/* Usamos CSS columns para efecto masonry */
+.container{
+  max-width:1200px;
+  margin: 0 auto;
+  padding: 18px 20px 80px;
+}
+
+.grid{
+  column-gap: var(--gap);
+  /* columnas responsivas */
+  column-count: 1;
+}
+@media(min-width:640px){ .grid{ column-count:2 } }
+@media(min-width:980px){ .grid{ column-count:3 } }
+@media(min-width:1280px){ .grid{ column-count:4 } }
+
+.card{
+  display:inline-block;
+  width:100%;
+  margin:0 0 var(--gap);
+  break-inside: avoid;
+  border-radius: var(--radius);
+  overflow:hidden;
+  position:relative;
+  background: #f8fafc;
+  box-shadow: 0 6px 18px rgba(7,11,20,0.04);
+  transition: transform .18s ease, box-shadow .18s ease;
+  cursor: pointer;
+}
+/* 🔧 Ajuste de tamaño uniforme para todas las imágenes de tarjetas */
+.card img {
+  width: 100%;
+  height: 250px;         /* altura uniforme para todas las imágenes */
+  object-fit: cover;     /* recorta sin deformar */
+  object-position: center;
+  border-radius: var(--radius) var(--radius) 0 0;
+  display: block;
+
+}
+
+/* metadata overlay */
+.card-meta{
+  position:absolute;
+  left:8px;
+  right:8px;
+  bottom:8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:8px;
+  backdrop-filter: blur(4px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.18));
+  color:white;
+  font-size:13px;
+}
+.photographer{
+  font-weight:600;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.45);
+}
+.like{
+  background: rgba(255,255,255,0.12);
+  border: none;
+  padding:6px 10px;
+  border-radius:8px;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* hover animation */
+.card:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(7,11,20,0.12);
+}
+.card:hover img{ transform: scale(1.03); }
+
+/* ---------- small utilities ---------- */
+.center{
+  text-align:center;
+}
+.muted{ color:var(--muted) }
+
+/* Accessibility: focus visible */
+a:focus, button:focus, input:focus{
+  outline: 3px solid rgba(59,130,246,0.18);
+  outline-offset:3px;
+}

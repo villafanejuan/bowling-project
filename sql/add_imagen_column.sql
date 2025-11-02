@@ -1,0 +1,1 @@
+ALTER TABLE eventos ADD COLUMN imagen VARCHAR(255) AFTER fecha;
